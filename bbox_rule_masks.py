@@ -38,14 +38,22 @@ for filename in tqdm(all_filenames, desc="Łączenie masek"):
         rule = cv2.resize(rule, (bbox.shape[1], bbox.shape[0]),
                           interpolation=cv2.INTER_NEAREST)
 
-    bbox_bin  = (bbox < 128).astype(np.uint8) 
-    rule_skin = (rule < 128).astype(np.uint8)
-    inter_bin = (bbox_bin & rule_skin).astype(np.uint8)
+    result = np.full(bbox.shape, 128, dtype=np.uint8)
 
-    result = (1 - inter_bin) * 255
+    is_background = bbox > 128
+    result[is_background] = 255
 
-    out_path = os.path.join(output_mask_dir, filename)
-    Image.fromarray(result.astype(np.uint8)).convert('1').save(out_path)
+    is_bbox_area = bbox <= 128
+    is_rule_skin = rule <= 128  
+    
+    is_skin = is_bbox_area & is_rule_skin
+    result[is_skin] = 0
+
+
+    filename_bmp = os.path.splitext(filename)[0] + ".bmp"
+    out_path = os.path.join(output_mask_dir, filename_bmp)
+    
+    Image.fromarray(result).convert('L').save(out_path)
 
     if example_image is None:
         example_image = (bbox, rule, result)
